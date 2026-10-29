@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#145c3e">
+<title>부의금 내역 조회</title>
+<style>
+:root{--bg:#f3f7f5;--card:#fff;--ink:#15231d;--muted:#697970;--line:#dce7e1;--green:#176b45;--green2:#0f5134;--soft:#e9f5ef;--bad:#b42318;--shadow:0 18px 55px rgba(19,65,43,.10)}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Pretendard,"Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+body{padding:clamp(16px,4vw,46px)}.wrap{width:min(760px,100%);margin:auto}.hero{padding:8px 3px 18px}.eyebrow{font-size:12px;font-weight:900;color:var(--green);letter-spacing:.12em}.hero h1{margin:9px 0 10px;font-size:clamp(30px,6vw,46px);letter-spacing:-.045em}.hero p{margin:0;color:var(--muted);line-height:1.7}
+.card{background:#fff;border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow);overflow:hidden}.section{padding:clamp(20px,5vw,34px)}.section+.section{border-top:1px solid var(--line)}
+label{display:block;font-weight:850;margin:0 0 9px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{min-width:0}input{width:100%;height:54px;border:1.5px solid #cbd9d1;border-radius:14px;padding:0 15px;font:inherit;font-size:17px;outline:none;background:#fff}input:focus{border-color:var(--green);box-shadow:0 0 0 4px rgba(23,107,69,.1)}
+.actions{display:flex;gap:10px;margin-top:14px}button{height:52px;border:0;border-radius:14px;padding:0 20px;font:inherit;font-weight:850;cursor:pointer}.primary{background:var(--green);color:#fff;flex:1}.primary:hover{background:var(--green2)}.ghost{background:#eef4f1;color:var(--green2)}button:disabled{opacity:.55;cursor:default}
+.hint{font-size:12px;color:var(--muted);margin-top:9px;line-height:1.55}.status{display:none;margin-top:14px;padding:13px 15px;border-radius:13px;font-size:14px;line-height:1.55}.status.show{display:block}.status.info{background:var(--soft);color:var(--green2)}.status.error{background:#fff0ef;color:var(--bad)}
+.results{display:none;background:#fbfdfc}.results.show{display:block}.resultTop{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:15px}.resultTop h2{margin:0;font-size:21px}.badge{font-size:12px;font-weight:900;background:var(--soft);color:var(--green);padding:7px 10px;border-radius:999px}
+.summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}.sum{border:1px solid var(--line);background:#fff;border-radius:16px;padding:14px}.sum span{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}.sum strong{font-size:21px}
+.record{border:1px solid var(--line);background:#fff;border-radius:17px;padding:5px 17px;margin-top:10px}.row{display:grid;grid-template-columns:110px 1fr;gap:15px;padding:12px 0;border-bottom:1px dashed #e4ebe7}.row:last-child{border-bottom:0}.k{color:var(--muted);font-size:14px}.v{text-align:right;font-weight:750}.money{color:var(--green2);font-weight:900;font-size:18px}
+.config{background:#f8faf9}.config summary{cursor:pointer;font-weight:800;color:#50645a}.configBox{margin-top:14px}.privacy{font-size:12px;color:#7e8e85;line-height:1.65;margin:14px 3px 0}.footer{text-align:center;font-size:12px;color:#94a29a;padding:22px 0 3px}
+@media(max-width:560px){body{padding:15px}.grid{grid-template-columns:1fr}.summary{grid-template-columns:1fr}.row{grid-template-columns:1fr;gap:5px}.v{text-align:left}.actions{flex-direction:column}.ghost{width:100%}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<header class="hero"><div class="eyebrow">PRIVATE LOOKUP</div><h1>부의금 내역 조회</h1><p>조회 비밀번호와 성명을 입력하면 등록된 내역만 확인할 수 있습니다.</p></header>
+<section class="card">
+  <div class="section">
+    <div class="grid">
+      <div class="field"><label for="accessCode">조회 비밀번호</label><input id="accessCode" type="password" inputmode="numeric" maxlength="20" autocomplete="current-password" placeholder="조회 비밀번호"></div>
+      <div class="field"><label for="nameInput">성명</label><input id="nameInput" type="text" maxlength="30" autocomplete="off" placeholder="예: 홍길동"></div>
+    </div>
+    <div class="actions"><button id="searchBtn" class="primary">조회하기</button></div>
+    <div class="hint">이름의 띄어쓰기는 무시합니다. 비밀번호는 브라우저에 저장하지 않습니다.</div>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+  </div>
+  <div id="results" class="section results" aria-live="polite">
+    <div class="resultTop"><h2 id="resultTitle">조회 결과</h2><span id="badge" class="badge"></span></div>
+    <div id="summary" class="summary"></div>
+    <div id="records"></div>
+  </div>
+  <details class="section config">
+    <summary>관리자 초기 설정</summary>
+    <div class="configBox">
+      <label for="publishableKey">Supabase Publishable Key</label>
+      <input id="publishableKey" type="password" autocomplete="off" placeholder="sb_publishable_... 또는 anon key">
+      <div class="actions">
+        <button id="saveKeyBtn" class="ghost" type="button">이 기기에 저장</button>
+        <button id="clearKeyBtn" class="ghost" type="button">저장값 삭제</button>
+      </div>
+      <div class="hint">Publishable Key는 Supabase가 브라우저 공개용으로 제공하는 키입니다. service_role 키는 절대 입력하지 마세요.</div>
+    </div>
+  </details>
+</section>
+<p class="privacy">※ 실제 명단과 금액은 GitHub Pages에 저장하지 않습니다. Supabase의 RLS 차단 테이블과 제한된 조회 함수만 사용하도록 설계했습니다.</p>
+<footer class="footer">Program by Kwon O Young. 오춘기 권오영</footer>
+</main>
+<script>
+const SUPABASE_URL='https://jacvltitwrxyfoasjcwq.supabase.co';
+const KEY_STORAGE='surcharge_supabase_publishable_key_v1';
+const $=s=>document.querySelector(s);
+const statusEl=$('#status'), results=$('#results'), btn=$('#searchBtn');
+function show(msg,type='info'){statusEl.className='status show '+type;statusEl.textContent=msg}
+function clear(){statusEl.className='status';statusEl.textContent='';results.className='section results'}
+function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function normName(v){return (v||'').replace(/\s+/g,'').trim()}
+function key(){return localStorage.getItem(KEY_STORAGE)||''}
+function fmt(v){const n=Number(v);return Number.isFinite(n)?n.toLocaleString('ko-KR')+'원':'-'}
+$('#publishableKey').value=key();
+$('#saveKeyBtn').onclick=()=>{const v=$('#publishableKey').value.trim();if(!v){show('저장할 Publishable Key를 입력해 주세요.','error');return}localStorage.setItem(KEY_STORAGE,v);show('이 기기에 Publishable Key를 저장했습니다.','info')};
+$('#clearKeyBtn').onclick=()=>{localStorage.removeItem(KEY_STORAGE);$('#publishableKey').value='';show('저장된 Publishable Key를 삭제했습니다.','info')};
+function render(name,data){
+  $('#resultTitle').textContent=name+' 님 조회 결과';
+  $('#badge').textContent=data.length+'건';
+  const total=data.reduce((s,r)=>s+(Number(r.amount)||0),0);
+  $('#summary').innerHTML=`<div class="sum"><span>조회 건수</span><strong>${data.length.toLocaleString('ko-KR')}건</strong></div><div class="sum"><span>금액 합계</span><strong>${total.toLocaleString('ko-KR')}원</strong></div>`;
+  $('#records').innerHTML=data.map((r,i)=>`<article class="record">${data.length>1?`<div class="row"><div class="k">내역</div><div class="v">${i+1}번째 기록</div></div>`:''}<div class="row"><div class="k">일시</div><div class="v">${esc(r.event_date||'-')}</div></div><div class="row"><div class="k">구분</div><div class="v">${esc(r.category||'-')}</div></div><div class="row"><div class="k">금액</div><div class="v money">${fmt(r.amount)}</div></div><div class="row"><div class="k">비고</div><div class="v">${esc(r.note||'-')}</div></div></article>`).join('');
+  results.className='section results show';results.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+async function lookup(){
+  clear();const apiKey=key();
+  if(!apiKey){show('먼저 아래 「관리자 초기 설정」에서 Supabase Publishable Key를 저장해 주세요.','error');document.querySelector('.config').open=true;return}
+  const code=$('#accessCode').value.trim(), name=normName($('#nameInput').value);
+  if(!code){show('조회 비밀번호를 입력해 주세요.','error');return}if(name.length<2){show('성명을 정확히 입력해 주세요.','error');return}
+  btn.disabled=true;btn.textContent='조회 중…';
+  try{const res=await fetch(SUPABASE_URL+'/rest/v1/rpc/lookup_surcharge',{method:'POST',headers:{'Content-Type':'application/json','apikey':apiKey,'Authorization':'Bearer '+apiKey},body:JSON.stringify({p_name:name,p_access_code:code})});if(res.status===401||res.status===403){show('조회 비밀번호가 맞지 않거나 Supabase 설정이 완료되지 않았습니다.','error');return}if(!res.ok){console.error(await res.text());show('조회 중 오류가 발생했습니다. 관리자 설정을 확인해 주세요.','error');return}const data=await res.json();if(!Array.isArray(data)||data.length===0){show('일치하는 이름의 내역이 없습니다. 이름을 다시 확인해 주세요.','error');return}render(name,data)}catch(e){console.error(e);show('서버에 연결할 수 없습니다. 네트워크 또는 Supabase 설정을 확인해 주세요.','error')}finally{btn.disabled=false;btn.textContent='조회하기'}
+}
+btn.onclick=lookup;$('#nameInput').addEventListener('keydown',e=>{if(e.key==='Enter')lookup()});
+</script>
+</body>
+</html>
